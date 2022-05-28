@@ -1,0 +1,13 @@
+[Unit]
+Description=Shaky Steve joystick driver
+StartLimitIntervalSec=0
+StopWhenUnneeded=true
+After=steve-roboarm.service
+Wants=steve-roboarm.service
+
+[Service]
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+WorkingDirectory=/srv/steve
+ExecStart=/srv/steve/venv/bin/python joystick.py

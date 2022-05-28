@@ -1,0 +1,9 @@
+[submodule "spacenavd"]
+	path = spacenavd
+	url = https://github.com/FreeSpacenav/spacenavd.git
+[submodule "libspnav"]
+	path = libspnav
+	url = https://github.com/FreeSpacenav/libspnav.git
+[submodule "seeed-voicecard"]
+	path = seeed-voicecard
+	url = https://github.com/HinTak/seeed-voicecard

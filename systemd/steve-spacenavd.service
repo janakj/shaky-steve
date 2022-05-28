@@ -1,0 +1,12 @@
+[Unit]
+Description=3Dconnexion Input Devices Userspace Driver
+After=syslog.target
+StartLimitIntervalSec=0
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/spacenavd -d -v
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Shaky Steve LED driver
+After=steve-roboarm.service steve-assistant.service
+Wants=steve-roboarm.service steve-assistant.service
+StartLimitIntervalSec=0
+
+[Service]
+BusName=net.janakj.steve.LED
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/srv/steve
+ExecStart=/srv/steve/venv/bin/python led.py
+
+[Install]
+WantedBy=multi-user.target

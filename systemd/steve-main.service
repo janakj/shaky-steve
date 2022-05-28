@@ -1,0 +1,15 @@
+[Unit]
+Description=Shaky Steve main program
+After=steve-roboarm.service steve-assistant.service
+Wants=steve-roboarm.service steve-assistant.service
+StartLimitIntervalSec=0
+
+[Service]
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/srv/steve
+ExecStart=/srv/steve/venv/bin/python main.py
+
+[Install]
+WantedBy=multi-user.target
