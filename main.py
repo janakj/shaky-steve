@@ -53,7 +53,7 @@ def on_utterance(text):
         roboarm.hand = str(float('+inf'))
     elif 'close' in text:
         roboarm.hand = str(float('-inf'))
-    elif 'Hi-5' in text:
+    elif 'hi-5' in text or 'high 5' in text or 'hi 5' in text:
         high_five()
 
 
