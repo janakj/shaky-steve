@@ -1,0 +1,14 @@
+[Unit]
+Description=Shaky Steve Speech-to-Text Service
+StartLimitIntervalSec=0
+
+[Service]
+BusName=net.janakj.steve.SpeechToText
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/srv/steve
+ExecStart=/srv/steve/venv/bin/python stt.py
+
+[Install]
+WantedBy=multi-user.target
