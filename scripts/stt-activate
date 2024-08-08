@@ -1,0 +1,8 @@
+#!/bin/bash
+dbus-send                               \
+  --system                              \
+  --dest=net.janakj.steve.SpeechToText  \
+  --print-reply                         \
+  --type=method_call                    \
+  /net/janakj/steve/SpeechToText        \
+  net.janakj.steve.SpeechToText.activate

@@ -1,0 +1,4 @@
+#!/bin/bash
+#sudo dbus-monitor --system --monitor
+
+sudo dbus-monitor --system --monitor "path='/net/janakj/steve/SpeechToText'"
