@@ -28,8 +28,8 @@ animations = {}
 # This layer exists if and only if at least one servo is moving.
 moving_layer = None
 
-# Indicates whether Google Assistant has the microphone active
-assistant_layer = None
+# Indicates whether the Speech-to-Text module has the microphone active
+stt_layer = None
 
 # A reference to the persistant layer that reflects whether or not any of the
 # robot servos are turned on. This layer shows a "breathing" effect as long as
@@ -221,20 +221,20 @@ def on_roboarm_props_change(name, props, opts):
     sync_actuator_layer(props)
 
 
-def on_assistant_props_change(name, props, opts):
-    global assistant_layer
+def on_stt_props_change(name, props, opts):
+    global stt_layer
     try:
         active = props['active']
     except KeyError:
         pass
     else:
         if active:
-            if assistant_layer is None:
-                assistant_layer = add_layer(RGB(0, 0, 255))
+            if stt_layer is None:
+                stt_layer = add_layer(RGB(0, 0, 255))
         else:
-            if assistant_layer is not None:
-                remove_layer(assistant_layer)
-                assistant_layer = None
+            if stt_layer is not None:
+                remove_layer(stt_layer)
+                stt_layer = None
 
 
 def main():
@@ -248,8 +248,8 @@ def main():
     roboarm = bus.get(f'{dbus_prefix}.RoboArm')
     roboarm['org.freedesktop.DBus.Properties'].onPropertiesChanged = on_roboarm_props_change
 
-    assistant = bus.get(f'{dbus_prefix}.Assistant')
-    assistant['org.freedesktop.DBus.Properties'].onPropertiesChanged = on_assistant_props_change
+    stt = bus.get(f'{dbus_prefix}.SpeechToText')
+    stt['org.freedesktop.DBus.Properties'].onPropertiesChanged = on_stt_props_change
 
     sync_moving_layer({ 'moving': roboarm.moving })
     sync_actuator_layer({ 'active': roboarm.active })

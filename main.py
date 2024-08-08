@@ -41,8 +41,9 @@ def high_five():
     roboarm.move('hand', hand, opts)
 
 
-def on_stt(text):
-    print(f'Got text: "{text}"')
+def on_utterance(text):
+    text = text.strip().lower()
+    print(f'Got utterance: "{text}"')
     if 'wake up' in text:
         roboarm.wakeup()
     elif 'sleep' in text:
@@ -62,8 +63,8 @@ def main():
 
     roboarm = bus.get(f'{dbus_prefix}.RoboArm')
 
-    assistant = bus.get(f'{dbus_prefix}.Assistant')
-    assistant.onSpeechToText = on_stt
+    stt = bus.get(f'{dbus_prefix}.SpeechToText')
+    stt.onUtterance = on_utterance
 
     loop = GLib.MainLoop()
     loop.run()

@@ -19,10 +19,10 @@ class Shell(Cmd):
     prompt = 'Shaky Steve> '
     intro = "Shaky Steve is pleased to make your acquitance! Type ? to list commands"
 
-    def __init__(self, roboarm, assistant):
+    def __init__(self, roboarm, stt):
         super().__init__()
         self.roboarm = roboarm
-        self.assistant = assistant
+        self.stt = stt
 
     def prop(self, name, arg):
         arg = arg.lower().strip()
@@ -100,9 +100,9 @@ class Shell(Cmd):
             print(e.message)
 
     def do_listen(self, arg):
-        'Activate the embedded Google Assistant'
+        'Activate the embedded Google Speech-to-Text module'
         try:
-            self.assistant.activate()
+            self.stt.activate()
         except Exception as e:
             print(e.message)
 
@@ -165,10 +165,10 @@ class Shell(Cmd):
 
 bus = SystemBus()
 roboarm = bus.get(f'{dbus_prefix}.RoboArm')
-assistant = bus.get(f'{dbus_prefix}.Assistant')
+stt = bus.get(f'{dbus_prefix}.SpeechToText')
 
 logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 try:
-    Shell(roboarm, assistant).cmdloop()
+    Shell(roboarm, stt).cmdloop()
 except KeyboardInterrupt:
     pass

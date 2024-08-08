@@ -46,7 +46,7 @@ def torso(v):    return _move('torso', v, speed=2.5)
 
 bus = SystemBus()
 roboarm = bus.get(f'{dbus_prefix}.RoboArm')
-assistant = bus.get(f'{dbus_prefix}.Assistant')
+stt = bus.get(f'{dbus_prefix}.SpeechToText')
 
 
 def main():
@@ -83,7 +83,7 @@ def main():
                 hand(event.button.press == 1)
             if event.button.bnum == 1:
                 if event.button.press == 1:
-                    assistant.activate()
+                    stt.activate()
         elif type_ == spnav.EventType.DEV:
             if event.dev.op == spnav.ActionType.DEV_RM.value:
                 print('Device removed, terminating')
