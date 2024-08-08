@@ -220,6 +220,10 @@ cat > /etc/dbus-1/system.d/steve.conf << "EOF"
         <allow send_destination="net.janakj.steve.Assistant"/>
         <allow receive_sender="net.janakj.steve.Assistant"/>
         <allow send_interface="net.janakj.steve.Assistant"/>
+
+        <allow send_destination="net.janakj.steve.SpeechToText"/>
+        <allow receive_sender="net.janakj.steve.SpeechToText"/>
+        <allow send_interface="net.janakj.steve.SpeechToText"/>
     </policy>
     <policy user="pi">
         <allow own_prefix="net.janakj.steve"/>
@@ -234,6 +238,10 @@ cat > /etc/dbus-1/system.d/steve.conf << "EOF"
         <allow send_destination="net.janakj.steve.Assistant"/>
         <allow receive_sender="net.janakj.steve.Assistant"/>
         <allow send_interface="net.janakj.steve.Assistant"/>
+
+        <allow send_destination="net.janakj.steve.SpeechToText"/>
+        <allow receive_sender="net.janakj.steve.SpeechToText"/>
+        <allow send_interface="net.janakj.steve.SpeechToText"/>
     </policy>
 </busconfig>
 EOF
