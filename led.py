@@ -9,7 +9,7 @@ from gi.repository import GLib
 from threading import Thread
 import asyncio
 import adafruit_tlc59711
-from color import RGB, RGBA, color
+from color import RGB, RGBA
 from config import dbus_prefix, verbose
 from animation import current_layer, transition, blink, breathe
 
@@ -28,8 +28,10 @@ animations = {}
 # This layer exists if and only if at least one servo is moving.
 moving_layer = None
 
-# Indicates whether the Speech-to-Text module has the microphone active
+# Indicates whether the Speech-to-Text module has the microphone active and
+# whether voice activity has been detected.
 stt_layer = None
+stt_vad_layer = None
 
 # A reference to the persistant layer that reflects whether or not any of the
 # robot servos are turned on. This layer shows a "breathing" effect as long as
@@ -222,7 +224,7 @@ def on_roboarm_props_change(name, props, opts):
 
 
 def on_stt_props_change(name, props, opts):
-    global stt_layer
+    global stt_layer, stt_vad_layer
     try:
         active = props['active']
     except KeyError:
@@ -235,6 +237,19 @@ def on_stt_props_change(name, props, opts):
             if stt_layer is not None:
                 remove_layer(stt_layer)
                 stt_layer = None
+
+    try:
+        voice_activity = props['voice_activity']
+    except KeyError:
+        pass
+    else:
+        if voice_activity:
+            if stt_vad_layer is None:
+                stt_vad_layer = add_layer(blink(RGBA(0, 0, 255, 0.5), 0.1))
+        else:
+            if stt_vad_layer is not None:
+                remove_layer(stt_vad_layer)
+                stt_vad_layer = None
 
 
 def main():
