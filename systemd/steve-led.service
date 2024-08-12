@@ -1,7 +1,7 @@
 [Unit]
 Description=Shaky Steve LED driver
-After=steve-roboarm.service steve-assistant.service
-Wants=steve-roboarm.service steve-assistant.service
+After=steve-roboarm.service steve-stt.service
+Wants=steve-roboarm.service steve-stt.service
 StartLimitIntervalSec=0
 
 [Service]
