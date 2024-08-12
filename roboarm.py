@@ -36,8 +36,8 @@ class RoboArm(EventEmitter):
                 type_ = actuator['type']
                 if type_ != 'linear' and type_ != 'angular':
                     raise Exception(f'Unsupported type {type_} for actuator {name}')
-            except KeyError:
-                raise Exception(f'Missing type for actuator {name}')
+            except KeyError as e:
+                raise Exception(f'Missing type for actuator {name}') from e
 
             if len(actuator['pulse']) != 2 or (
                 not isinstance(actuator['pulse'][0], (int, float)) or
@@ -54,8 +54,8 @@ class RoboArm(EventEmitter):
 
             # If the actuator has a map attribute, convert it into a sorted list
             # of tuples where the first element in each tuple is the input
-            # coordinate and the second is the target value in the 0-1 range.
-            # The tuples are sorted in an ascending order of their input
+            # coordinate and the second element is the target value in the 0-1
+            # range. The tuples are sorted in an ascending order of their input
             # coordinates.
             try:
                 if type(actuator['map']) is not dict:
@@ -106,7 +106,7 @@ class RoboArm(EventEmitter):
             m_ = self.set_map[name]
         except KeyError:
             if state < 0: state = 0.0
-            if state > 1: state = 1.1
+            if state > 1: state = 1.0
         else:
             for i in range(1, len(m)):
                 if state <= m[i][1]:
@@ -176,7 +176,7 @@ class RoboArm(EventEmitter):
     # supported by the servo.
     async def _move(self, name: str, to: float, speed: Union[float, None] = None, rate: int = 50, ease=None, moving_threshold=0.2) -> float:
         if speed is not None and speed < 0:
-            raise Exception('Speed must be greater >= 0')
+            raise Exception('Speed must be >= 0')
 
         from_ = self.get(name)
         if from_ is None:
@@ -193,7 +193,6 @@ class RoboArm(EventEmitter):
             type_ = self.actuator[name]['type']
             if type_ == 'linear':
                 duration = abs(to - from_) / speed
-                pass
             elif type_ == 'angular':
                 duration = abs(to - from_) / 180 * math.pi / speed
             else:
@@ -331,6 +330,7 @@ class DBusAPI(Thread):
         self._old_active = None
 
     def run(self):
+        self.started = True
         self.bus = SystemBus()
         self.bus.publish("%s.RoboArm" % dbus_prefix, self)
 
@@ -351,6 +351,9 @@ class DBusAPI(Thread):
 
         self.roboarm.off('moving', self.on_moving)
         self.roboarm.off('actuator.*', self.on_actuator)
+
+        if self.started:
+            self.join()
 
     def _invoke_coro(self, coro):
         f = asyncio.run_coroutine_threadsafe(coro, self.asyncio_loop)
@@ -516,9 +519,9 @@ DBusAPI.__doc__ = f'''
 # the range by listening to the servo. It will make sound if you get too far.
 # This is best done before the servos are mounted onto the robot.
 #
-# Set the servos to 90 degree, i.e., half of the range. Mount it on the chassis
+# Set the servos to 90 degrees, i.e., half of the range. Mount it on the chassis
 #
-# Map custom servo angle range to the range 0 to 180 via piece-wise linear
+# Map a custom servo angle range to the range 0 to 1 via a piece-wise linear
 # function.
 #
 # Pulse widths are in microseconds. Dimensions are in millimeters.
@@ -530,48 +533,48 @@ def main():
                 'type' : 'angular',
                 'servo': 0,
                 'pulse': [ 460, 2450 ],
-                'map'  : { '-90': 0.01, '0': 0.47, '90': 0.97 }
+                'map'  : { -90: 0.01, 0: 0.47, 90: 0.97 }
             },
             'hand': {
                 'type' : 'linear',
                 'servo': 1,               # Servo number on the 16-port PWM chip
                 'pulse': [ 590, 2590 ],   # Minimum and maximum usable pulse width for this servo
-                'range': [ 0.16, 0.78 ],  # The servo can only operate within this physical range (maps to 0.0 and 1.0)
-                'map'  : {                # The width of the clamp in meters
-                    '0.000': 1.0,  '0.010': 0.65, '0.020': 0.42, '0.021': 0.40,
-                    '0.022': 0.38, '0.023': 0.37, '0.024': 0.35, '0.025': 0.32,
-                    '0.026': 0.30, '0.027': 0.25, '0.028': 0.22, '0.029': 0.15,
-                    '0.030': 0.0
+                'range': [ 0.16, 0.78 ],  # The servo can only operate within this physical range (maps to <0, 1>)
+                'map'  : {                # The keys are the width of the open clamp in meters
+                    0     : 1.0,  0.01  : 0.65, 0.02  : 0.42, 0.021 : 0.40,
+                    0.022 : 0.38, 0.023 : 0.37, 0.024 : 0.35, 0.025 : 0.32,
+                    0.026 : 0.30, 0.027 : 0.25, 0.028 : 0.22, 0.029 : 0.15,
+                    0.03  : 0.0
                 }
             },
             'wrist_lr': {
                 'type' : 'angular',
                 'servo': 2,
                 'pulse': [ 580, 2580 ],
-                'map'  : { '-90': 0.93, '90': 0.04 },
+                'map'  : { -90: 0.93, 90: 0.04 },
             },
             'wrist_ud': {
                 'type' : 'angular',
                 'servo': 3,
                 'pulse': [ 470, 2450 ],
-                'map'  : { '-90': 0, '0': 0.42, '90': 0.92 }
+                'map'  : { -90: 0, 0: 0.42, 90: 0.92 }
             },
             'elbow': {
                 'type' : 'angular',
                 'servo': 4,
                 'pulse': [ 460, 2550 ],
                 'range': [ 0.29, 0.89 ],
-                'map'  : { '-58.4': 1, '0': 0.51, '61.7': 0 }
+                'map'  : { -58.4: 1, 0: 0.51, 61.7: 0 }
             },
             'shoulder': {
                 'type' : 'angular',
                 'servo': 5,
                 'pulse': [ 460, 2580 ],
                 'range': [ 0.11, 0.96 ],
-                'map'  : { '-90': 1, '0': 0.51, '90': 0 }
+                'map'  : { -90: 1, 0: 0.51, 90: 0 }
             }
         },
-        'dimensions': {
+        'dimensions': { # Dimensions of the robot's parts in millimeters
             'torso_height'  : 122,
             'arm_length'    : 100,
             'forearm_length': 98,
@@ -594,7 +597,6 @@ def main():
             loop.stop()
     finally:
         api.quit()
-        api.join()
         roboarm.off()
 
 
