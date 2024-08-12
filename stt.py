@@ -216,12 +216,12 @@ def start_streaming(mic: BufferedAudioInput, client: SpeechClient, config: Strea
 
 
 @click.command()
-@click.option('--verbose',         '-v', envvar='VERBOSE',         count=True,                                  help='Increase logging verbosity')
-@click.option('--sample-rate',     '-r', envvar='SAMPLE_RATE',     type=int,   default=DEFAULT_SAMPLE_RATE,     help='Sample rate', show_default=True)
-@click.option('--channels',        '-C', envvar='CHANNELS',        type=int,   default=DEFAULT_CHANNELS,        help='Number if channels', show_default=True)
-@click.option('--chunk-duration',  '-c', envvar='CHUNK_DURATION',  type=float, default=DEFAULT_CHUNK_DURATION,  help='Audio chunk duration in seconds', show_default=True)
-@click.option('--vad-timeout',     '-v', envvar='VAD_TIMEOUT',     type=float, default=DEFAULT_VAD_TIMEOUT,     help='Voice activity detection timeout', show_default=True)
-@click.option('--language',        '-l', envvar='LANGUAGE',        type=str,   default=DEFAULT_LANGUAGE,        help='Language for speech recognition', show_default=True)
+@click.option('--verbose',         '-v', envvar='VERBOSE',         count=True,                                 help='Increase logging verbosity')
+@click.option('--sample-rate',     '-r', envvar='SAMPLE_RATE',     type=int,   default=DEFAULT_SAMPLE_RATE,    help='Sample rate', show_default=True)
+@click.option('--channels',        '-c', envvar='CHANNELS',        type=int,   default=DEFAULT_CHANNELS,       help='Number if channels', show_default=True)
+@click.option('--chunk-duration',  '-d', envvar='CHUNK_DURATION',  type=float, default=DEFAULT_CHUNK_DURATION, help='Audio chunk duration in seconds', show_default=True)
+@click.option('--vad-timeout',     '-t', envvar='VAD_TIMEOUT',     type=float, default=DEFAULT_VAD_TIMEOUT,    help='Voice activity detection timeout', show_default=True)
+@click.option('--language',        '-l', envvar='LANGUAGE',        type=str,   default=DEFAULT_LANGUAGE,       help='Language for speech recognition', show_default=True)
 def main(verbose, sample_rate, channels, chunk_duration, vad_timeout, language):
     global dbus_api
 
