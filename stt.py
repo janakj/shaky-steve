@@ -26,7 +26,7 @@ DEFAULT_SAMPLE_RATE     = 16000   # The default audio sampling rate in Hz
 DEFAULT_SAMPLE_WIDTH    = 2       # The default width of a single audio sample (1, 2, 3, or 4)
 DEFAULT_CHANNELS        = 1       # The number of audio channels to use. Google STT defaults to 1
 DEFAULT_CHUNK_DURATION  = 0.1     # The default chunk duration in seconds
-DEFAULT_MAX_SILENCE     = 5       # The number of seconds after which streaming to Google STT ends if no voice activity is detected
+DEFAULT_VAD_TIMEOUT     = 5       # Voice activity detection streaming timeout
 DEFAULT_LANGUAGE        = 'en-US' # The language code to be used by the Google STT service
 
 
@@ -220,9 +220,9 @@ def start_streaming(mic: BufferedAudioInput, client: SpeechClient, config: Strea
 @click.option('--sample-rate',     '-r', envvar='SAMPLE_RATE',     type=int,   default=DEFAULT_SAMPLE_RATE,     help='Sample rate', show_default=True)
 @click.option('--channels',        '-C', envvar='CHANNELS',        type=int,   default=DEFAULT_CHANNELS,        help='Number if channels', show_default=True)
 @click.option('--chunk-duration',  '-c', envvar='CHUNK_DURATION',  type=float, default=DEFAULT_CHUNK_DURATION,  help='Audio chunk duration in seconds', show_default=True)
-@click.option('--max-silence',     '-m', envvar='MAX_SILENCE',     type=float, default=DEFAULT_MAX_SILENCE,     help='Maximum silence length', show_default=True)
+@click.option('--vad-timeout',     '-v', envvar='VAD_TIMEOUT',     type=float, default=DEFAULT_VAD_TIMEOUT,     help='Voice activity detection timeout', show_default=True)
 @click.option('--language',        '-l', envvar='LANGUAGE',        type=str,   default=DEFAULT_LANGUAGE,        help='Language for speech recognition', show_default=True)
-def main(verbose, sample_rate, channels, chunk_duration, max_silence, language):
+def main(verbose, sample_rate, channels, chunk_duration, vad_timeout, language):
     global dbus_api
 
     if verbose == 0:
@@ -263,7 +263,7 @@ def main(verbose, sample_rate, channels, chunk_duration, max_silence, language):
             audio_channel_count = channels,
             encoding            = RecognitionConfig.AudioEncoding.LINEAR16)
 
-        frac, seconds = math.modf(max_silence)
+        frac, seconds = math.modf(vad_timeout)
         timeout = Duration(seconds=round(seconds), nanos=round(frac * 10e8))
 
         config = StreamingRecognitionConfig(
