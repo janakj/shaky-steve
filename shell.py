@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import os
-import logging
+import click
 from pydbus import SystemBus
 from gi.repository import GLib
 from cmd import Cmd
-from config import dbus_prefix, verbose
 
+from config import dbus_prefix
+from utils  import init_logging
 
 def parse_actuator_state(v):
     to = v.lower().strip()
@@ -163,12 +164,17 @@ class Shell(Cmd):
         return self.do_exit(arg)
 
 
-bus = SystemBus()
-roboarm = bus.get(f'{dbus_prefix}.RoboArm')
-stt = bus.get(f'{dbus_prefix}.SpeechToText')
+@click.command()
+@click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
+def main(verbose):
+    init_logging(verbose)
 
-logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
-try:
+    bus = SystemBus()
+    roboarm = bus.get(f'{dbus_prefix}.RoboArm')
+    stt = bus.get(f'{dbus_prefix}.SpeechToText')
+
     Shell(roboarm, stt).cmdloop()
-except KeyboardInterrupt:
-    pass
+
+
+if __name__ == "__main__":
+    main()

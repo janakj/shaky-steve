@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 import os
 import logging
+
+import click
 import pygame
 from gi.repository import GLib
 from pydbus import SystemBus
-from config import dbus_prefix, verbose
+
+from config import dbus_prefix
+from utils import init_logging
+
+log = logging.getLogger(__name__)
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 MIN = str(float('-inf'))
@@ -13,31 +20,6 @@ MAX = str(float('+inf'))
 buttons = [None] * 12
 axes = [ None ] * 4
 
-def main():
-    joystick = pygame.joystick.Joystick(0)
-    joystick.init()
-
-    print("Axes: {}".format(joystick.get_numaxes()))
-    print("Buttons: {}".format(joystick.get_numbuttons()))
-
-    axes_last = [ 0 ] * 4
-
-    while True:
-        event = pygame.event.wait()
-        if event.type == pygame.JOYAXISMOTION:
-            if axes[event.axis] is not None:
-                v = round(event.value, 1)
-                if axes_last[event.axis] != v:
-                    axes[event.axis](v)
-                    axes_last[event.axis] = v
-        elif event.type == pygame.JOYBUTTONDOWN:
-            if buttons[event.button] is not None:
-                buttons[event.button](True)
-        elif event.type == pygame.JOYBUTTONUP:
-            if buttons[event.button] is not None:
-                buttons[event.button](False)
-        elif event.type == pygame.JOYHATMOTION:
-            pass
 
 def hand(state):
     v = MIN if state else MAX
@@ -73,17 +55,48 @@ axes[1] = shoulder
 #axes[1] = wrist_ud
 axes[0] = wrist_lr
 
-pygame.init()
-pygame.joystick.init()
 
-bus = SystemBus()
-roboarm = bus.get(f'{dbus_prefix}.RoboArm')
+@click.command()
+@click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
+def main(verbose):
+    global roboarm
 
-logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
-try:
+    init_logging(verbose)
+
+    bus = SystemBus()
+    roboarm = bus.get(f'{dbus_prefix}.RoboArm')
+
+    pygame.init()
+    pygame.joystick.init()
+    try:
+        joystick = pygame.joystick.Joystick(0)
+        joystick.init()
+
+        log.debug("Axes: {}".format(joystick.get_numaxes()))
+        log.debug("Buttons: {}".format(joystick.get_numbuttons()))
+
+        axes_last = [ 0 ] * 4
+
+        while True:
+            event = pygame.event.wait()
+            if event.type == pygame.JOYAXISMOTION:
+                if axes[event.axis] is not None:
+                    v = round(event.value, 1)
+                    if axes_last[event.axis] != v:
+                        axes[event.axis](v)
+                        axes_last[event.axis] = v
+            elif event.type == pygame.JOYBUTTONDOWN:
+                if buttons[event.button] is not None:
+                    buttons[event.button](True)
+            elif event.type == pygame.JOYBUTTONUP:
+                if buttons[event.button] is not None:
+                    buttons[event.button](False)
+            elif event.type == pygame.JOYHATMOTION:
+                pass
+    finally:
+        pygame.joystick.quit()
+        pygame.quit()
+
+
+if __name__ == '__main__':
     main()
-except KeyboardInterrupt:
-    pass
-finally:
-    pygame.joystick.quit()
-    pygame.quit()

@@ -1,13 +1,11 @@
 import math
 import logging
 import pyaudio
-from threading import Thread, Event
+from threading import Event
 from contextlib import suppress
 
 import click
 from google.protobuf.duration_pb2 import Duration
-from pydbus                       import SystemBus
-from gi.repository                import GLib
 from pydbus.generic               import signal
 from queue                        import Queue, Full, Empty
 from config                       import dbus_prefix
@@ -18,6 +16,8 @@ from google.cloud.speech          import (
     StreamingRecognizeRequest,
     StreamingRecognizeResponse)
 
+from dbus import DBusAPI
+from utils import init_logging
 
 BUS_NAME = f'{dbus_prefix}.SpeechToText'
 
@@ -33,30 +33,12 @@ DEFAULT_LANGUAGE        = 'en-US' # The language code to be used by the Google S
 log = logging.getLogger(__name__)
 
 
-class DBusAPI(Thread):
+class STTDBusAPI(DBusAPI):
     def __init__(self, on_activate=None):
-        super().__init__()
-        self.dbus_loop = None
+        super().__init__(BUS_NAME)
         self._active = False
         self._voice_activity = False
         self.on_activate = on_activate
-        self.started = False
-
-    def run(self):
-        self.started = True
-        log.debug(f'Publishing {BUS_NAME} on the system DBus bus')
-        self.bus = SystemBus()
-        self.bus.publish(BUS_NAME, self)
-        self.dbus_loop = GLib.MainLoop()
-        self.dbus_loop.run()
-
-    def quit(self):
-        log.debug('DBus API is terminating')
-        if self.dbus_loop is not None:
-            self.dbus_loop.quit()
-
-        if self.started:
-            self.join()
 
     @property
     def active(self):
@@ -97,11 +79,10 @@ class DBusAPI(Thread):
             log.debug('Got DBus request to toggle STT')
             self.on_activate(not self.active)
 
-    PropertiesChanged = signal()
     Utterance = signal()
 
 
-DBusAPI.__doc__ = f'''
+STTDBusAPI.__doc__ = f'''
 <node>
     <interface name='{BUS_NAME}'>
         <method name='activate'></method>
@@ -231,13 +212,7 @@ def start_streaming(mic: BufferedAudioInput, client: SpeechClient, config: Strea
 def main(verbose, sample_rate, channels, chunk_duration, vad_timeout, language):
     global dbus_api
 
-    if verbose == 0:
-        level = logging.WARNING
-    if verbose == 1:
-        level = logging.INFO
-    if verbose >= 2:
-        level = logging.DEBUG
-    logging.basicConfig(level=level)
+    init_logging(verbose)
 
     # The on_activate callback function is called from the thread used by the
     # DBus API.
@@ -255,7 +230,7 @@ def main(verbose, sample_rate, channels, chunk_duration, vad_timeout, language):
             mic.stop_streaming()
 
     event = Event()
-    dbus_api = DBusAPI(on_activate=on_activate)
+    dbus_api = STTDBusAPI(on_activate=on_activate)
 
     try:
         client = SpeechClient()

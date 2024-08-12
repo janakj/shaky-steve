@@ -7,6 +7,7 @@ BusName=net.janakj.steve.Assistant
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1
+Environment=VERBOSE=3
 WorkingDirectory=/srv/steve
 ExecStart=/srv/assistant/venv/bin/python assistant.py
 

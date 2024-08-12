@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 import logging
+from contextlib import suppress
+
+import spnav
+import click
 from gi.repository import GLib
 from pydbus import SystemBus
-from config import dbus_prefix, verbose
-import spnav
+
+from config import dbus_prefix
+from utils import init_logging
+
+log = logging.getLogger(__name__)
 
 MIN = str(float('-inf'))
 MAX = str(float('+inf'))
@@ -11,10 +18,10 @@ MAX = str(float('+inf'))
 
 def print_dev_info():
     proto = spnav.protocol()
-    print(f'Using spacenavd AF_UNIX protocol version {proto}')
+    log.debug(f'Using spacenavd AF_UNIX protocol version {proto}')
 
     if proto >= 1:
-        print(f'Found {spnav.dev_name()} at {spnav.dev_path()} with {spnav.dev_axes()} axes and {spnav.dev_buttons()} buttons')
+        log.debug(f'Found {spnav.dev_name()} at {spnav.dev_path()} with {spnav.dev_axes()} axes and {spnav.dev_buttons()} buttons')
 
 
 def _move(name, value, speed=1, deadband=0.4):
@@ -49,11 +56,11 @@ roboarm = bus.get(f'{dbus_prefix}.RoboArm')
 stt = bus.get(f'{dbus_prefix}.SpeechToText')
 
 
-def main():
+def main_loop():
     try:
         spnav.dev_type()
     except spnav.SpnavError:
-        print('No device found, exiting')
+        log.info('No device found, exiting')
         return
 
     spnav.client_name('steve')
@@ -86,19 +93,22 @@ def main():
                     stt.toggle()
         elif type_ == spnav.EventType.DEV:
             if event.dev.op == spnav.ActionType.DEV_RM.value:
-                print('Device removed, terminating')
+                log.info('Device removed, terminating')
                 break
 
 
-logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
-if __name__ == '__main__':
+@click.command()
+@click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
+def main(verbose):
+    init_logging(verbose)
+
     try:
         spnav.open()
-        main()
-    except KeyboardInterrupt:
-        pass
+        main_loop()
     finally:
-        try:
+        with suppress(Exception):
             spnav.close()
-        except:
-            pass
+
+
+if __name__ == "__main__":
+    main()

@@ -1,17 +1,22 @@
-#!/usr/bin/env python3
-
 import logging
+from collections import OrderedDict
+
+import click
 import board
 import busio
-from collections import OrderedDict
 from pydbus import SystemBus
-from gi.repository import GLib
-from threading import Thread
 import asyncio
 import adafruit_tlc59711
+
 from color import RGB, RGBA
-from config import dbus_prefix, verbose
-from animation import current_layer, transition, blink, breathe
+from config import dbus_prefix
+from animation import current_layer, blink, breathe
+from utils import init_logging
+from dbus import DBusAPI
+
+log = logging.getLogger(__name__)
+
+BUS_NAME = f'{dbus_prefix}.LED'
 
 # This variable is used to generate unique layer IDs
 layer_id = 0
@@ -137,22 +142,7 @@ def off():
         remove_layer(layer)
 
 
-class DBusAPI(Thread):
-    def __init__(self):
-        super().__init__()
-        self.dbus_loop = None
-
-    def run(self):
-        self.bus = SystemBus()
-        self.bus.publish(f'{dbus_prefix}.LED', self)
-
-        self.dbus_loop = GLib.MainLoop()
-        self.dbus_loop.run()
-
-    def quit(self):
-        if self.dbus_loop is not None:
-            self.dbus_loop.quit()
-
+class LEDDBusAPI(DBusAPI):
     def _invoke_coro(self, coro):
         f = asyncio.run_coroutine_threadsafe(coro, asyncio_loop)
         return f.result()
@@ -167,9 +157,9 @@ class DBusAPI(Thread):
         off()
 
 
-DBusAPI.__doc__ = f'''
+LEDDBusAPI.__doc__ = f'''
 <node>
-    <interface name='{dbus_prefix}.LED'>
+    <interface name='{BUS_NAME}'>
         <method name='off'></method>
         <method name='add_layer'>
             <arg type='d' name='red' direction='in'/>
@@ -252,8 +242,12 @@ def on_stt_props_change(name, props, opts):
                 stt_vad_layer = None
 
 
-def main():
+@click.command()
+@click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
+def main(verbose):
     global actuator_layer
+
+    init_logging(verbose)
 
     updater = asyncio_loop.create_task(led_updater())
     actuator_layer = add_layer(breathe(RGB(103, 46, 0), period=6, gamma=0.08))
@@ -269,22 +263,20 @@ def main():
     sync_moving_layer({ 'moving': roboarm.moving })
     sync_actuator_layer({ 'active': roboarm.active })
 
-    api = DBusAPI()
+    api = LEDDBusAPI(BUS_NAME)
     try:
         api.start()
         try:
             asyncio_loop.run_forever()
-        except KeyboardInterrupt:
-            pass
         finally:
             updater.cancel()
             asyncio_loop.stop()
     finally:
         api.quit()
-        api.join()
         off()
 
 
-logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 if __name__ == '__main__':
     main()
+
+

@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
+import logging
 import math
 import asyncio
 import logging
-
-from pydbus import SystemBus
-from pydbus.generic import signal
-from gi.repository import GLib
-from threading import Thread
-from pymitter import EventEmitter
-
-from typing import Union
+from copy     import deepcopy
+from typing   import Union
 from datetime import datetime, timedelta
-from copy import deepcopy
-from adafruit_servokit import ServoKit
-import ease
-from config import dbus_prefix, verbose
 
+import click
+from pymitter          import EventEmitter
+from adafruit_servokit import ServoKit
+
+import ease
+from config import dbus_prefix
+from dbus   import DBusAPI
+from utils  import init_logging
+
+log = logging.getLogger(__name__)
+
+BUS_NAME = f'{dbus_prefix}.RoboArm'
 
 State = Union[float, None]
 
@@ -70,7 +73,7 @@ class RoboArm(EventEmitter):
                 raise Exception(f'Invalid map in actuator {name}') from e
 
         # If everything appears correct, apply the settings to the servos
-        self.off()
+        self.power_off()
         for actuator in self.actuator.values():
             self.servo[actuator['servo']].set_pulse_width_range(
                 actuator['pulse'][0], actuator['pulse'][1])
@@ -82,7 +85,7 @@ class RoboArm(EventEmitter):
         for task in self.task.values():
             task.cancel()
 
-    def off(self):
+    def power_off(self):
         '''Stop any movement tasks and turn off all actuators'''
         self.stop()
         for name, actuator in self.actuator.items():
@@ -319,23 +322,16 @@ class RoboArm(EventEmitter):
         return self.set('shoulder', value)
 
 
-class DBusAPI(Thread):
+class RoboArmDBusAPI(DBusAPI):
     def __init__(self, roboarm, asyncio_loop):
-        super().__init__()
+        super().__init__(BUS_NAME)
         self.roboarm = roboarm
         self.asyncio_loop = asyncio_loop
-        self.dbus_loop = None
 
         self._old_moving = None
         self._old_active = None
 
     def run(self):
-        self.started = True
-        self.bus = SystemBus()
-        self.bus.publish("%s.RoboArm" % dbus_prefix, self)
-
-        self.dbus_loop = GLib.MainLoop()
-
         self.roboarm.on('moving', self.on_moving)
         self.on_moving(self.roboarm.moving)
 
@@ -343,24 +339,19 @@ class DBusAPI(Thread):
         for name in self.roboarm.actuator.keys():
             self.on_actuator(name, getattr(self.roboarm, name))
 
-        self.dbus_loop.run()
+        super().run()
 
     def quit(self):
-        if self.dbus_loop is not None:
-            self.dbus_loop.quit()
-
         self.roboarm.off('moving', self.on_moving)
         self.roboarm.off('actuator.*', self.on_actuator)
-
-        if self.started:
-            self.join()
+        super().quit()
 
     def _invoke_coro(self, coro):
         f = asyncio.run_coroutine_threadsafe(coro, self.asyncio_loop)
         return f.result()
 
     def stop(self):   self.roboarm.stop()
-    def off(self):    self.roboarm.off()
+    def off(self):    self.roboarm.power_off()
     def wakeup(self): self._invoke_coro(self.roboarm.wakeup())
     def sleep(self):  self._invoke_coro(self.roboarm.sleep())
 
@@ -370,7 +361,7 @@ class DBusAPI(Thread):
 
     def set(self, name, state):
         if not isinstance(state, str):
-            raise Exception('State argument must be a string')
+            raise Exception('Actuator state argument must be a string')
 
         self.roboarm.set(name, float(state) if len(state) else None)
 
@@ -381,8 +372,8 @@ class DBusAPI(Thread):
 
         kw = {}
         if 'speed' in opts: kw['speed'] = opts['speed']
-        if 'rate' in opts:  kw['rate'] = opts['rate']
-        if 'ease' in opts:  kw['ease'] = getattr(ease, opts['ease'])
+        if 'rate'  in opts: kw['rate']  = opts['rate']
+        if 'ease'  in opts: kw['ease']  = getattr(ease, opts['ease'])
         if 'block' in opts: kw['block'] = opts['block']
 
         self._invoke_coro(self.roboarm.move(name, state, **kw))
@@ -454,12 +445,10 @@ class DBusAPI(Thread):
             'active': active
         }, [])
 
-    PropertiesChanged = signal()
 
-
-DBusAPI.__doc__ = f'''
+RoboArmDBusAPI.__doc__ = f'''
 <node>
-    <interface name='{dbus_prefix}.RoboArm'>
+    <interface name='{BUS_NAME}'>
         <method name='stop'></method>
         <method name='off'></method>
         <method name='wakeup'></method>
@@ -526,7 +515,11 @@ DBusAPI.__doc__ = f'''
 #
 # Pulse widths are in microseconds. Dimensions are in millimeters.
 
-def main():
+@click.command()
+@click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
+def main(verbose):
+    init_logging(verbose)
+
     roboarm = RoboArm(ServoKit(channels=16), {
         'actuators': {
             'torso': {
@@ -586,20 +579,18 @@ def main():
 
     loop = asyncio.new_event_loop()
 
-    api = DBusAPI(roboarm, loop)
+    api = RoboArmDBusAPI(roboarm, loop)
     try:
         api.start()
         try:
             loop.run_forever()
-        except KeyboardInterrupt:
-            pass
         finally:
+            log.debug("Waiting for asyncio event loop to stop")
             loop.stop()
     finally:
         api.quit()
-        roboarm.off()
+        roboarm.power_off()
 
 
-logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

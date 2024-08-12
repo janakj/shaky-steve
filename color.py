@@ -1,10 +1,10 @@
 from collections import namedtuple
 
 
-RGB = namedtuple('RGB', 'r g b')
+RGB  = namedtuple('RGB', 'r g b')
 RGBA = namedtuple('RGBA', 'r g b alpha')
-HSL = namedtuple('HSL', 'h s l')
-PQT = namedtuple('PQT', 'p q t')
+HSL  = namedtuple('HSL', 'h s l')
+PQT  = namedtuple('PQT', 'p q t')
 
 
 color = {

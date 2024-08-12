@@ -1,8 +1,15 @@
 import logging
+import click
+import logging
+from time import sleep
+
 from pydbus import SystemBus
 from gi.repository import GLib
-from config import dbus_prefix, verbose
-from time import sleep
+
+from utils import init_logging
+from config import dbus_prefix
+
+log = logging.getLogger(__name__)
 
 roboarm = None
 
@@ -57,7 +64,11 @@ def on_utterance(text):
         high_five()
 
 
-def main():
+@click.command()
+@click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
+def main(verbose):
+    init_logging(verbose)
+
     global roboarm
     bus = SystemBus()
 
@@ -70,6 +81,5 @@ def main():
     loop.run()
 
 
-logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 if __name__ == '__main__':
     main()
