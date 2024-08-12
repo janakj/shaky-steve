@@ -83,7 +83,7 @@ def main():
                 hand(event.button.press == 1)
             if event.button.bnum == 1:
                 if event.button.press == 1:
-                    stt.activate()
+                    stt.toggle()
         elif type_ == spnav.EventType.DEV:
             if event.dev.op == spnav.ActionType.DEV_RM.value:
                 print('Device removed, terminating')

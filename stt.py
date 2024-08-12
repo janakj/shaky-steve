@@ -92,6 +92,11 @@ class DBusAPI(Thread):
             log.debug('Got DBus request to deactivate STT')
             self.on_activate(False)
 
+    def toggle(self):
+        if self.on_activate is not None:
+            log.debug('Got DBus request to toggle STT')
+            self.on_activate(not self.active)
+
     PropertiesChanged = signal()
     Utterance = signal()
 
@@ -101,6 +106,7 @@ DBusAPI.__doc__ = f'''
     <interface name='{BUS_NAME}'>
         <method name='activate'></method>
         <method name='deactivate'></method>
+        <method name='toggle'></method>
         <property name='active' type='b' access='read'>
             <annotation name='org.freedesktop.DBus.Property.EmitsChangedSignal' value='true'/>
         </property>
