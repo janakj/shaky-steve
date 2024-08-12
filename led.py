@@ -235,7 +235,7 @@ def on_stt_props_change(name, props, opts):
     else:
         if voice_activity:
             if stt_vad_layer is None:
-                stt_vad_layer = add_layer(blink(RGBA(0, 0, 255, 0.5), 0.1))
+                stt_vad_layer = add_layer(blink(RGB(0, 0, 127), 0.1))
         else:
             if stt_vad_layer is not None:
                 remove_layer(stt_vad_layer)
