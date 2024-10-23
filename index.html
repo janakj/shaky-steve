@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <title>Shaky Steve: An Educational Robot with ChatGPT Integration</title>
+        <script>
+            tailwind.config = {
+              theme: {
+                container: { center: true },
+                extend: { colors: { clifford: '#da373d' } }
+              }
+            }
+        </script>
+    </head>
+    <body class="container">
+        <div class="grid grid-cols-1 gap-y-8 py-10">
+            <div>
+                <h1 class="text-3xl font-bold text-center text-clifford pb-4">
+                    Shaky Steve: An Educational Robot with ChatGPT Integration
+                </h1>
+                <p class="text-center font-bold">
+                    <a class="hover:underline" href="https://irt.cs.columbia.edu/">Internet Real-Time Lab</a>, <a class="hover:underline" href="https://www.cs.columbia.edu">Columbia University</a>
+                </p>
+            </div>
+            <div class="px-24">
+                <img class="float-right object-contain w-64 pl-8" src="images/steve.png"/>
+                <p class="text-justify">
+                    Shaky Steve is an exploratory research project to design an Internet-connected, voice-controlled robot that can be controlled and programmed using natural language with the
+                    help of a large language model (LLM) such as OpenAI's ChatGPT.
+                    The robot is based on a robotic arm kit from <a class="text-blue-600 hover:underline" href="https://www.merkurtoys.com">Merkur</a> with six
+                    degrees of freedom.
+                    The <a class="text-blue-600 hover:underline" href="https://github.com/janakj/shaky-steve">open-source Python software</a> that controls the robot runs on a Raspberry Pi 5 with Adafruit's <a class="text-blue-600 hover:underline" href="https://learn.adafruit.com/adafruit-voice-bonnet">Voice</a> and <a class="text-blue-600 hover:underline" href="https://www.adafruit.com/product/3416">16-Channel PWM</a> expansion cards.
+                    The robot can be real-time-controlled via voice commands or with a <a class="text-blue-600 hover:underline" href="https://3dconnexion.com/us/spacemouse/">3Dconnexion SpaceMouse</a>.
+                    The current prototype uses the Google Speech-to-Text service to transcribe voice to text and OpenAI's ChatGPT 4 to translate voice commands to Python program snippets controlling the robot.
+                </p>
+                <p class="pt-6 text-justify">
+                    Shaky Steve is primarily an educational and hobby project.
+                    Our goal was to create an affordable, hackable, and open platform for students interested in exploring the intersection of robotics, Internet services (Internet of Things), and AI.
+                    The robot's hardware and software have been designed to invite tinkering and experimentation at a level suitable for high school or first-year college students.
+                </p>
+                <p class="pt-6 text-justify">
+                    The current robot prototype can do the following:
+                    <ul class="pt-1 ps-5 space-y-1 list-disc list-inside">
+                        <li>Control all servos with a 3D mouse in real-time</li>
+                        <li>Execute simple pre-programmed Python routines ("wakeup", "sleep", "high-5", etc.) based on voice commands</li>
+                        <li>Create new Python routines to control the robot from commands in natural language interpreted by ChatGPT (<i>work in progress</i>)</li>
+                        <li>Verbally respond to voice or control commands using the Google Text-to-Speech service</li>
+                        <li>Indicate its state via four programmable RGB LEDs</li>
+                    </ul>
+                </p>
+                <p class="pt-6 text-justify">
+                    In the following YouTube video, Ege Fuat Eskişar shows how he can control and program the robot in real-time with Google Speech-to-Text and ChatGPT.
+                </p>
+            </div>
+            <div class="flex justify-center">
+                <iframe
+                    class="aspect-video"
+                    width="560" height="315"
+                    src="https://www.youtube.com/embed/RQNK1aIZMGU?si=UBwU6hVavw80e5-u"
+                    title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen>
+                </iframe>
+            </div>
+            <p class="text-center">
+                If you are a Columbia University student interested to improve robot, do not hesitate to contact <a class="text-blue-600 hover:underline" href="mailto:janakj@cs.columbia.edu">Jan Janak</a>!
+                Please include a short description of what you would like to do with the robot.
+            </p>
+        </div>
+    </body>
+</html>
