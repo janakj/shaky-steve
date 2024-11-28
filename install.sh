@@ -3,21 +3,12 @@ set -Eeuo pipefail
 
 dir=$(dirname $(realpath -s $(readlink -f $BASH_SOURCE)))
 
-###### Enable SPI and I2C in raspi-config
+###### PREREQUISITE: Enable SPI and I2C in raspi-config
 
 if [ $(whoami) != 'root' ] ; then
     echo "This script must be run under root"
     exit 1
 fi
-
-##### Install and configure ddclient so that the robot can be reached remotely
-apt install --no-install-recommends ddclient
-
-cat > /etc/ddhclient.conf << EOF
-ssl=yes
-protocol=dyndns2, server=domains.google.com, use=web, web=http://checkip.dyndns.org, login=<...>, password=<...> steve.janakj.net
-EOF
-#####
 
 ###### Enable ssh server
 systemctl enable ssh
@@ -70,55 +61,7 @@ cd seeed-voicecard
 # Reboot the Raspberry Pi now
 #####
 
-##### Install pyenv for user pi
-
-# Install Python build dependencies so that new Python interpreter versions can
-# be built by pyenv
-
-apt install        \
-  make             \
-  build-essential  \
-  libssl-dev       \
-  zlib1g-dev       \
-  libbz2-dev       \
-  libreadline-dev  \
-  libsqlite3-dev   \
-  wget             \
-  curl             \
-  llvm             \
-  libncursesw5-dev \
-  xz-utils         \
-  tk-dev           \
-  libxml2-dev      \
-  libxmlsec1-dev   \
-  libffi-dev       \
-  liblzma-dev
-
-git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-pushd ~/.pyenv
-src/configure && make -C src
-popd
-
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-echo 'eval "$(pyenv init -)"' >> ~/.bashrc
-
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bash_profile
-echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
-echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
-
-# Make sure systemd has access to the Python interpreters installed here
-chmod a+rx /root
-
-# Re-login to activate the installation
-#####
-
-##### Install Python 3.10.4
-pyenv install 3.10.4
-#####
-
-
-##### Create a Python venv for the robot
+##### Create a Python virtual environment for the robot software
 apt install                \
     libsdl2-dev            \
     libsdl2-image-dev      \
@@ -128,11 +71,21 @@ apt install                \
     libportmidi-dev        \
     libcairo-dev           \
     libgirepository1.0-dev \
-    libjpeg-dev
+    libjpeg-dev            \
+    libspeexdsp-dev
 
 python -m venv venv
-venv/bin/python -m pip install --upgrade pip
-venv/bin/python -m pip install -r requirements-min.txt
+PYTHON=venv/bin/python
+$PYTHON -m pip install --upgrade pip
+
+# If you are on a platform unspported by speexdsp-ns, you may need to manually
+# compile and install the library as follows:
+#
+#pushd speexdsp-ns-python
+#CPPFLAGS=-I<path> LDFLAGS=-L<path> $PYTHON setup.py install
+#popd
+
+$PYTHON -m pip install -r requirements.txt
 #####
 
 ###### Build and install spacenavd for the 3D mouse
@@ -148,56 +101,6 @@ pushd libspnav
 ./configure
 make
 make install
-popd
-######
-
-###### Install Google Assistant
-mkdir -p /srv/assistant
-cat > /srv/assistant/credentials.json << "EOF"
-
-    "refresh_token": "<Your refresh token>",
-    "token_uri": "https://accounts.google.com/o/oauth2/token",
-    "client_id": "<Your client ID>",
-    "client_secret": "<Your client secret>",
-    "scopes": ["https://www.googleapis.com/auth/assistant-sdk-prototype"]
-}
-EOF
-
-# Install development dependencies for Google Assistant
-apt install portaudio19-dev libffi-dev libssl-dev
-
-# Google Assistant doesn't seem to work with more modern Python versions, so we
-# have to restore to 3.8.13 here.
-pyenv install 3.8.13
-
-mkdir /srv/assistant
-pushd /srv/assistant
-
-# Create a Python 3.8.13 virtual environment and upgrade pip
-pyenv local 3.8.13
-python -m venv venv
-venv/bin/python -m pip install --upgrade pip
-
-# Now install all the pip packages for Google Assistant. Since more modern
-# grpcio versions do not have pre-compiled binaries that work on Raspberry Pi
-# (they are missing more recent glibc), we select an older grpio version
-# manually.
-venv/bin/python -m pip install grpcio==1.40.0
-
-# Also install more modern version of the tenacity library which has some async
-# stuff fixed.
-venv/bin/python -m pip install tenacity==8.0.1
-
-# Now install the various Google Assistant packages
-venv/bin/python -m pip install --upgrade google-assistant-sdk[samples]
-venv/bin/python -m pip install --upgrade google-auth-oauthlib[tool]
-
-# Install custom applications required by the application
-venv/bin/python -m pip install pydbus PyGObject
-
-# The following line is how one can test that the installation works
-#googlesamples-assistant-pushtotalk --project-id shaky-steve --device-model-id shaky-steve-l14n6p
-
 popd
 ######
 
@@ -266,5 +169,3 @@ cd /srv/steve
 exec venv/bin/python shell.py
 EOF
 chmod a+x /usr/local/bin/steve
-
-# Install and configure wireguard tunnel

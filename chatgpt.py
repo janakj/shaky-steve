@@ -12,7 +12,8 @@ import logging
 from gi.repository import GLib
 from pydbus.generic import signal
 #from queue import SimpleQueue, Empty
-from config import openai_api_key
+from dotenv import load_dotenv
+
 
 # Path to the JSON file
 functions_json_path = "functions.json"
@@ -86,7 +87,7 @@ class DBusAPI(Thread):
         if self.dbus_loop is not None:
             self.dbus_loop.quit()
         self.join()
-    
+
 
     def move(self, text):
         #log.debug('Activating speech-to-text')
@@ -143,13 +144,13 @@ def clamp(value):
 def reset():
     print("Setting robot to default position. ")
     roboarm.wakeup()
-    
+
 def power_down():
     print("Powering down robot. ")
     roboarm.sleep()
     roboarm.off()
-    
-    
+
+
 def high_five():
     opts = {
         'block': GLib.Variant('b', False),
@@ -188,8 +189,8 @@ def point_up():
     roboarm.wrist_ud = "0"
     roboarm.shoulder = "20"
     roboarm.elbow = "50"
- 
-"""    
+
+"""
 functions_dict = {
     "stop"     : stop,
     "off"      : off,
@@ -206,7 +207,6 @@ functions_dict = {
 }
 """
 
-openai.api_key = openai_api_key
 
 """
 For prompt processing, you should ignore transcriptions that are not movement related. For example
@@ -233,7 +233,7 @@ You control a robotic arm with the following Python functions:
 
 You may encounter new functions such as `Alpha`. If you encounter such functions, you must execute them directly as they are defined in the environment.
 
-Only execute commands prefixed with the keyword 'execute'. 
+Only execute commands prefixed with the keyword 'execute'.
 Return only the Python code corresponding to the command, with no comments, explanations, or additional text.
 """
 
@@ -243,38 +243,38 @@ Return only the Python code corresponding to the command, with no comments, expl
 
 """
 You have the following Python functions that control servos in a robotic arm with six degrees of freedom.
-The function off() turns the robot off. 
-             
-The function torso(degree) rotates the robot's base from left(-90) to right(90). 
+The function off() turns the robot off.
 
-The function shoulder(degree) moves the arm from back (-90) to front (90). 
+The function torso(degree) rotates the robot's base from left(-90) to right(90).
+
+The function shoulder(degree) moves the arm from back (-90) to front (90).
 For shoulder: The value 0 points the arm up.
 
-The function elbow(degree) extends (-58.4) or closes (61.7) the arm's elbow. 
+The function elbow(degree) extends (-58.4) or closes (61.7) the arm's elbow.
 For elbow: The value 61.7 corresponds to the maximum extension, high point basically.
 
-The function wrist_lr(degree) rotates the wrist horizontally from left (-90) to right(90). 
+The function wrist_lr(degree) rotates the wrist horizontally from left (-90) to right(90).
 
-The function wrist_ud(degree) rotates the wrist vertically from up (90) to down(-90). 
+The function wrist_ud(degree) rotates the wrist vertically from up (90) to down(-90).
 
 The function clamp(degree) closes (0) or opens(0.03) the robot's clamp.
 For function clamp: the passed value corresponds to the extent of opened clamp in meters.
 
 The function reset() resets the bot to its default position.
 
-The function power_down() powers the robot down to shut the servos off.  
+The function power_down() powers the robot down to shut the servos off.
 
 The function high_five() just makes the robot high five.
 
-The function point_up() makes Steve look skyward. 
-                          
+The function point_up() makes Steve look skyward.
+
 Do not define the functions.
 
 When the prompt includes the keyword 'execute', execute the corresponding Python function.
 
 It is imperative that you only generate the code and no additional comments or any explanations, just the code. Literally just give me the code, nothing else.
-Please provide only the Python code and no additional comments or explanations. 
-No comments at all, just the code; I don't want to see anything else. 
+Please provide only the Python code and no additional comments or explanations.
+No comments at all, just the code; I don't want to see anything else.
 Do not add '''python''' at the beginning of every code snippet, don't specify it at all.
 
 """
@@ -311,7 +311,7 @@ Return only the Python code corresponding to the command, with no comments, expl
     code = response.choices[0].message['content']
     code = code.strip()
     if code.startswith("```python"):
-        code = code[10:]  
+        code = code[10:]
     if code.endswith("```"):
         code = code[:-3]
     return code
@@ -341,7 +341,7 @@ def main():
     clear_json_file()
     loop = GLib.MainLoop()
     loop.run()
-        
+
     # print("\nType in '<<' to exit.\n")
     # while True:
     #     text = input("Type in something to do: ")
@@ -351,11 +351,15 @@ def main():
     #     response = generate_request(text)
     #     print(f"\nThe delay is: {floor(time.time() - start)} seconds.\n")
     #     print(response + '\n')
-        
+
 
     # code.interact(local=globals())
 
 if __name__ == "__main__":
+    load_dotenv()
+
+    openai.api_key = os.environ['OPENAI_API_KEY']
+
     bus = SystemBus()
     roboarm = bus.get(f'{dbus_prefix}.RoboArm')
     dbus_api = DBusAPI()
@@ -370,7 +374,7 @@ if __name__ == "__main__":
 """
 for example:
 {
-"move" : ... (ChatGPT generated code here)   
+"move" : ... (ChatGPT generated code here)
 }
 
 """

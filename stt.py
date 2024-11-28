@@ -5,7 +5,7 @@ from threading import Event
 from contextlib import suppress
 
 import click
-from google.protobuf.duration_pb2 import Duration
+from google.protobuf.duration_pb2 import Duration  # protobuf
 from pydbus.generic               import signal
 from queue                        import Queue, Full, Empty
 from config                       import dbus_prefix
@@ -168,7 +168,7 @@ class BufferedAudioInput:
             self.queue.task_done()
             if chunk is None:
                 return
-            
+
             yield chunk
 
 
@@ -255,7 +255,7 @@ def main(verbose, sample_rate, channels, chunk_duration, vad_timeout, language):
                 speech_start_timeout = timeout,
                 speech_end_timeout   = timeout))
 
-        mic = BufferedAudioInput(sample_rate, DEFAULT_SAMPLE_WIDTH, channels, chunk_duration) 
+        mic = BufferedAudioInput(sample_rate, DEFAULT_SAMPLE_WIDTH, channels, chunk_duration)
 
         dbus_api.start()
         while True:
@@ -264,7 +264,7 @@ def main(verbose, sample_rate, channels, chunk_duration, vad_timeout, language):
             log.debug('Starting streaming to Google STT')
             start_streaming(mic, client, config)
             log.debug('Streaming to Google STT stopped')
-    
+
     finally:
         dbus_api.quit()
 

@@ -2,8 +2,8 @@ import logging
 from collections import OrderedDict
 
 import click
-import board
-import busio
+import board   # adafruit-blinka
+import busio   # adafruit-blinka
 from pydbus import SystemBus
 import asyncio
 import adafruit_tlc59711

@@ -7,3 +7,6 @@
 [submodule "seeed-voicecard"]
 	path = seeed-voicecard
 	url = https://github.com/HinTak/seeed-voicecard
+[submodule "speexdsp-ns-python"]
+	path = speexdsp-ns
+	url = https://github.com/TeaPoly/speexdsp-ns-python.git
