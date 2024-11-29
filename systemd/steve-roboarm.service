@@ -9,7 +9,7 @@ RestartSec=5
 Environment=PYTHONUNBUFFERED=1
 Environment=VERBOSE=3
 WorkingDirectory=/srv/steve
-ExecStart=/srv/steve/venv/bin/python roboarm.py
+ExecStart=/srv/steve/venv/bin/python steve/roboarm.py
 
 [Install]
 WantedBy=multi-user.target

@@ -9,7 +9,7 @@ RestartSec=10
 Environment=PYTHONUNBUFFERED=1
 Environment=VERBOSE=3
 WorkingDirectory=/srv/steve
-ExecStart=/srv/steve/venv/bin/python stt.py
+ExecStart=/srv/steve/venv/bin/python steve/stt.py
 
 [Install]
 WantedBy=multi-user.target

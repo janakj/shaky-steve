@@ -15,3 +15,4 @@ PyGObject==3.50.0                          # Python interface to GTK
 pymitter==0.5.1                            # Publish-subscribe signal library for Python
 python-dotenv==1.0.1
 speexdsp-ns==0.1.2                         # Speex noise suppression (optional openwakeword dep)
+jupyterlab==4.3.1
