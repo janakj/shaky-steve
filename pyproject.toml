@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shaky-steve"
+version = "0.0.1"
+description = "An educational toy robot"
+authors = [
+  { name = "Jan Janak", email = "jan@janakj.org" }
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+requires-python = ">=3.11.0,<3.12.0"
+dependencies = [
+  "Adafruit-Blinka",                    # Board and bus detection and abstraction library
+  "adafruit-circuitpython-servokit",    # I2C 16-channel PCA9685 PWM servo driver board
+  "adafruit-circuitpython-tlc59711",    # SPI 12-channel TLC59711 PWM LED driver board
+  "click",                              # Command-line interface builder
+  "google-cloud-speech",                # Google Cloud Speech-to-text client API
+  "google-cloud-texttospeech",          # Google Cloud Text-to-Speech client API
+  "numpy",
+  "openai",                             # OpenAI's ChatGPT client library
+  "openwakeword",                       # A wake word detection library
+  "pip-tools",                          # A dependency (virtual environment) management helper
+  "protobuf",                           # Protocol Buffers client library
+  "pyaudio",                            # Audio input-output
+  "pydbus",                             # Python interface to D-Bus
+  "pygame",                             # PyGame for the joystick interface
+  "PyGObject",                          # Python interface to GTK
+  "pymitter",                           # Publish-subscribe signal library for Python
+  "python-dotenv",                      # Load API keys from a .env file
+#  "speexdsp-ns"                        # Speex noise suppression. Must be installed manually on macOS.
+]
+
+[project.optional-dependencies]
+jupyter = [
+  "numpy==2.1.3",
+  "ipywidgets==8.1.5",
+  "jupyterlab==4.3.1",
+  "matplotlib==3.9.2",
+  "pandas==2.2.3",
+  "python-language-server==0.36.2",
+  "python-lsp-server==1.12.0",
+  "pycodestyle==2.12.1",
+  "pydocstyle==6.3.0",
+  "pyflakes==3.2.0",
+  "httpx<0.28.0"                        # This is needed to fix a big in the pypi plugin
+]
+
+[tool.setuptools]
+packages = ["steve"]
+
+[tool.setuptools.package-data]
+"steve" = [
+  "sounds/*",
+  "models/*"
+]
+
+[tool.pip-tools]
+generate-hashes = true
+allow-unsafe = true
+strip-extras = true
+#quiet = true

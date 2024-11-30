@@ -82,10 +82,14 @@ $PYTHON -m pip install --upgrade pip
 # compile and install the library as follows:
 #
 #pushd speexdsp-ns-python
-#CPPFLAGS=-I<path> LDFLAGS=-L<path> $PYTHON setup.py install
+#CPPFLAGS=-I<path> LDFLAGS=-L<path> $PYTHON -m pip pip install . 
 #popd
 
 $PYTHON -m pip install -r requirements.txt
+$PYTHON -m pip install -e .
+
+# Optionally install Jupyter Lab dependencies
+#$PYTHON -m pip install -e '.[jupyter]'
 #####
 
 ###### Build and install spacenavd for the 3D mouse
