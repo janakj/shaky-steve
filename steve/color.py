@@ -8,36 +8,36 @@ PQT  = namedtuple('PQT', 'p q t')
 
 
 color = {
-    'lightRed'     : RGB(239,  41,  41),
-    'red'          : RGB(204,   0,   0),
-    'darkRed'      : RGB(164,   0,   0),
-    'lightOrange'  : RGB(252, 175,  62),
-    'orange'       : RGB(245, 121,   0),
-    'darkOrange'   : RGB(206,  92,   0),
-    'lightYellow'  : RGB(255, 233,  79),
-    'yellow'       : RGB(237, 212,   0),
-    'darkYellow'   : RGB(196, 160,   0),
-    'lightGreen'   : RGB(138, 226,  52),
-    'green'        : RGB(115, 210,  22),
-    'darkGreen'    : RGB( 78, 154,   6),
-    'lightBlue'    : RGB(114, 159, 207),
-    'blue'         : RGB( 52, 101, 164),
-    'darkBlue'     : RGB( 32,  74, 135),
-    'lightPurple'  : RGB(173, 127, 168),
-    'purple'       : RGB(117,  80, 123),
-    'darkPurple'   : RGB( 92,  53, 102),
-    'lightBrown'   : RGB(233, 185, 110),
-    'brown'        : RGB(193, 125,  17),
-    'darkBrown'    : RGB(143,  89,   2),
-    'black'        : RGB(  0,   0,   0),
-    'white'        : RGB(255, 255, 255),
-    'lightGrey'    : RGB(238, 238, 236),
-    'grey'         : RGB(211, 215, 207),
-    'darkGrey'     : RGB(186, 189, 182),
-    'lightGray'    : RGB(238, 238, 236),
-    'lightCharcoal': RGB(136, 138, 133),
-    'charcoal'     : RGB( 85,  87,  83),
-    'darkCharcoal' : RGB( 46,  52,  54)
+    'lightRed'      : RGB(239,  41,  41),
+    'red'           : RGB(204,   0,   0),
+    'darkRed'       : RGB(164,   0,   0),
+    'lightOrange'   : RGB(252, 175,  62),
+    'orange'        : RGB(245, 121,   0),
+    'darkOrange'    : RGB(206,  92,   0),
+    'lightYellow'   : RGB(255, 233,  79),
+    'yellow'        : RGB(237, 212,   0),
+    'darkYellow'    : RGB(196, 160,   0),
+    'lightGreen'    : RGB(138, 226,  52),
+    'green'         : RGB(115, 210,  22),
+    'darkGreen'     : RGB( 78, 154,   6),
+    'lightBlue'     : RGB(114, 159, 207),
+    'blue'          : RGB( 52, 101, 164),
+    'darkBlue'      : RGB( 32,  74, 135),
+    'lightPurple'   : RGB(173, 127, 168),
+    'purple'        : RGB(117,  80, 123),
+    'darkPurple'    : RGB( 92,  53, 102),
+    'lightBrown'    : RGB(233, 185, 110),
+    'brown'         : RGB(193, 125,  17),
+    'darkBrown'     : RGB(143,  89,   2),
+    'black'         : RGB(  0,   0,   0),
+    'white'         : RGB(255, 255, 255),
+    'lightGrey'     : RGB(238, 238, 236),
+    'grey'          : RGB(211, 215, 207),
+    'darkGrey'      : RGB(186, 189, 182),
+    'lightGray'     : RGB(238, 238, 236),
+    'lightCharcoal' : RGB(136, 138, 133),
+    'charcoal'      : RGB( 85,  87,  83),
+    'darkCharcoal'  : RGB( 46,  52,  54)
 }
 
 
@@ -113,3 +113,23 @@ def scale(minimum: float, maximum: float, val: float):
 def dim(rgb: RGB, ratio: float):
     hsl = rgb_to_hsl(rgb)
     return hsl_to_rgb(HSL(hsl.h, hsl.s, scale(0.15, hsl.l, ratio)))
+
+
+def blend(dst: RGB, src: RGBA):
+    ia = 1 - src.alpha
+    dst.r = src.alpha * src.r + ia * dst.r
+    dst.g = src.alpha * src.g + ia * dst.g
+    dst.b = src.alpha * src.b + ia * dst.b
+
+
+def rgb_to_float(src: RGB | RGBA):
+    if isinstance(src, RGB):
+        return RGB(src.r / 255, src.g / 255, src.b / 255)
+    elif isinstance(src, RGBA):
+        return RGBA(src.r / 255, src.g / 255, src.b / 255, src.alpha)
+    else:
+        raise Exception('Unsupported source value type')
+
+
+def rgb_to_css(rgb: RGB) -> str:
+    return f'#{rgb.r:02x}{rgb.g:02x}{rgb.b:02x}'

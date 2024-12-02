@@ -1,14 +1,10 @@
 import math
 import logging
-import pyaudio
 from threading import Event
-from contextlib import suppress
 
 import click
 from google.protobuf.duration_pb2 import Duration  # protobuf
 from pydbus.generic               import signal
-from queue                        import Queue, Full, Empty
-from steve.config                       import dbus_prefix
 from google.cloud.speech          import (
     SpeechClient,
     RecognitionConfig,
@@ -16,8 +12,10 @@ from google.cloud.speech          import (
     StreamingRecognizeRequest,
     StreamingRecognizeResponse)
 
-from steve.dbus import DBusAPI
-from steve.utils import init_logging
+from steve.audio  import BufferedAudioInput
+from steve.config import dbus_prefix
+from steve.dbus   import DBusAPI
+from steve.utils  import init_logging
 
 BUS_NAME = f'{dbus_prefix}.SpeechToText'
 
@@ -101,91 +99,46 @@ STTDBusAPI.__doc__ = f'''
 </node>
 '''
 
+class SpeechToText:
+    def __init__(self, language=DEFAULT_LANGUAGE, chunk_duration=DEFAULT_CHUNK_DURATION, channels=DEFAULT_CHANNELS, sample_rate=DEFAULT_SAMPLE_RATE, vad_timeout=DEFAULT_VAD_TIMEOUT):
+        self.vad_timeout = vad_timeout
 
-class BufferedAudioInput:
-    def __init__(self, sample_rate, sample_width, channels, chunk_duration, max_queue_duration=1):
-        self.sample_rate = sample_rate
-        self.sample_width = sample_width
-        self.channels = channels
-        self.chunk_duration = chunk_duration
-        self.stream = None
+        self._client = SpeechClient()
 
-        log.debug(f'Using {pyaudio.get_portaudio_version_text()}')
-        self.pyaudio = pyaudio.PyAudio()
+        rec_config = RecognitionConfig(
+            language_code       = language,
+            model               = 'latest_long',
+            max_alternatives    = 1,
+            use_enhanced        = True,
+            sample_rate_hertz   = sample_rate,
+            audio_channel_count = channels,
+            encoding            = RecognitionConfig.AudioEncoding.LINEAR16)
 
-        log.debug(f'Chunk duration is {chunk_duration} seconds')
+        frac, seconds = math.modf(vad_timeout)
+        timeout = Duration(seconds=round(seconds), nanos=round(frac * 10e8))
 
-        maxsize = round(max_queue_duration / chunk_duration)
-        log.debug(f'Setting max audio queue size to {maxsize} chunks')
-        self.queue = Queue(maxsize=maxsize)
+        self._config = StreamingRecognitionConfig(
+            config                       = rec_config,
+            interim_results              = False,
+            enable_voice_activity_events = True,
+            voice_activity_timeout       = StreamingRecognitionConfig.VoiceActivityTimeout(
+                speech_start_timeout = timeout,
+                speech_end_timeout   = timeout))
 
-    def __del__(self):
-        if self.pyaudio is not None:
-            with suppress(Exception): self.pyaudio.terminate()
-            self.pyaudio = None
+        self._mic = BufferedAudioInput(sample_rate, DEFAULT_SAMPLE_WIDTH, channels, chunk_duration)
 
-    def flush(self):
-        while True:
-            try:
-                self.queue.get(block=False)
-            except Empty:
-                break
-            self.queue.task_done()
-
-    def _enqueue(self, in_data, frame_count, time_info, status_flags):
-        try:
-            self.queue.put(in_data, block=False)
-        except Full:
-            log.warn('Audio queue overrun (STT too slow?)')
-            self.flush()
-
-        return None, pyaudio.paContinue
-
-    def __enter__(self):
-        self.flush()
-        self.stream = self.pyaudio.open(
-            input             = True,
-            rate              = self.sample_rate,
-            format            = pyaudio.get_format_from_width(self.sample_width),
-            channels          = self.channels,
-            frames_per_buffer = round(self.sample_rate * self.chunk_duration),
-            stream_callback   = self._enqueue)
-        return self
-
-    def stop_streaming(self):
-        if self.stream is not None:
-            with suppress(Exception): self.stream.stop_stream()
-            with suppress(Exception): self.stream.close()
-            self.stream = None
-            self.queue.put(None)
-
-    def __exit__(self, type, value, traceback):
-        self.stop_streaming()
-
-    def __iter__(self):
-        while True:
-            chunk = self.queue.get()
-            self.queue.task_done()
-            if chunk is None:
-                return
-
-            yield chunk
-
-
-def start_streaming(mic: BufferedAudioInput, client: SpeechClient, config: StreamingRecognitionConfig):
-    with mic as stream:
-        try:
-            dbus_api.active = True
+    def recognize(self):
+        with self._mic as stream:
             requests = (StreamingRecognizeRequest(audio_content=c) for c in stream)
-            for response in client.streaming_recognize(config, requests):
+            for response in self._client.streaming_recognize(self._config, requests):
                 # Each response may contain multiple results, and each result may
                 # contain multiple alternatives. Here we print only the
                 # transcription for the top alternative of the top result.
 
                 if response.speech_event_type == StreamingRecognizeResponse.SpeechEventType.SPEECH_ACTIVITY_BEGIN:
-                    dbus_api.voice_activity = True
+                    yield True
                 elif response.speech_event_type == StreamingRecognizeResponse.SpeechEventType.SPEECH_ACTIVITY_END:
-                    dbus_api.voice_activity = False
+                    yield False
                 elif response.speech_event_type == StreamingRecognizeResponse.SpeechEventType.SPEECH_ACTIVITY_TIMEOUT:
                     log.debug(f'Voice activity timeout')
                     return
@@ -196,10 +149,10 @@ def start_streaming(mic: BufferedAudioInput, client: SpeechClient, config: Strea
 
                     t = res.alternatives[0].transcript.strip()
                     if len(t):
-                        dbus_api.Utterance(t)
-        finally:
-            dbus_api.active = False
-            dbus_api.voice_activity = False
+                        yield t
+
+    def stop(self):
+        self._mic.stop_streaming()
 
 
 @click.command()
@@ -227,42 +180,31 @@ def main(verbose, sample_rate, channels, chunk_duration, vad_timeout, language):
             # Stop the ongoing streaming session (if any) by closing the
             # microphone input. This will indicate to the STT client to stop
             # streaming and the function start_streaming below will return.
-            mic.stop_streaming()
+            stt_client.stop()
 
     event = Event()
     dbus_api = STTDBusAPI(on_activate=on_activate)
 
     try:
-        client = SpeechClient()
-
-        rec_config = RecognitionConfig(
-            language_code       = language,
-            model               = 'latest_long',
-            max_alternatives    = 1,
-            use_enhanced        = True,
-            sample_rate_hertz   = sample_rate,
-            audio_channel_count = channels,
-            encoding            = RecognitionConfig.AudioEncoding.LINEAR16)
-
-        frac, seconds = math.modf(vad_timeout)
-        timeout = Duration(seconds=round(seconds), nanos=round(frac * 10e8))
-
-        config = StreamingRecognitionConfig(
-            config                       = rec_config,
-            interim_results              = False,
-            enable_voice_activity_events = True,
-            voice_activity_timeout       = StreamingRecognitionConfig.VoiceActivityTimeout(
-                speech_start_timeout = timeout,
-                speech_end_timeout   = timeout))
-
-        mic = BufferedAudioInput(sample_rate, DEFAULT_SAMPLE_WIDTH, channels, chunk_duration)
+        stt_client = SpeechToText(sample_rate=sample_rate, channels=channels, chunk_duration=chunk_duration, vad_timeout=vad_timeout, language=language)
 
         dbus_api.start()
         while True:
             event.clear()
             event.wait()
             log.debug('Starting streaming to Google STT')
-            start_streaming(mic, client, config)
+
+            try:
+                dbus_api.active = True
+                for value in stt_client.run():
+                    if isinstance(value, bool):
+                        dbus_api.voice_activity = value
+                    else:
+                        dbus_api.Utterance(value)
+            finally:
+                dbus_api.active = False
+                dbus_api.voice_activity = False
+
             log.debug('Streaming to Google STT stopped')
 
     finally:

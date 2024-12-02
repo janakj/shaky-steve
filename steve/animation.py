@@ -1,7 +1,7 @@
-import asyncio
 import math
 import contextvars
 from datetime import datetime, timedelta
+from asyncio import sleep
 
 
 # This variable is used to keep track of the current layer within animation
@@ -31,7 +31,7 @@ async def transition(color, duration, ease=lambda v: v, rate=25):
         layer[3] = alpha * ease(step)
 
         if now > stop: break
-        await asyncio.sleep(1 / rate)
+        await sleep(1 / rate)
 
 
 async def blink(color, on_duration, off_duration=None):
@@ -45,9 +45,9 @@ async def blink(color, on_duration, off_duration=None):
 
     while True:
         layer[3] = alpha
-        await asyncio.sleep(on_duration)
+        await sleep(on_duration)
         layer[3] = 0
-        await asyncio.sleep(off_duration)
+        await sleep(off_duration)
 
 
 # Inspired by: https://makersportal.com/blog/2020/3/27/simple-breathing-led-in-arduino
@@ -64,4 +64,4 @@ async def breathe(color, period=4, gamma=0.12, rate=60):
             layer[0] = r * v
             layer[1] = g * v
             layer[2] = b * v
-            await asyncio.sleep(1 / rate)
+            await sleep(1 / rate)

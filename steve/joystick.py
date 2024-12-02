@@ -20,9 +20,9 @@ buttons = [None] * 12
 axes = [ None ] * 4
 
 
-def hand(state):
+def clamp(state):
     v = MIN if state else MAX
-    roboarm.move('hand', v, {
+    roboarm.move('clamp', v, {
         'speed': GLib.Variant('d', 0.1),
         'block': GLib.Variant('b', False)
     })
@@ -48,7 +48,7 @@ def torso(v):    return _move('torso', v, speed=2.5)
 buttons[6] = lambda v: roboarm.sleep()
 buttons[7] = lambda v: roboarm.wakeup()
 
-buttons[0] = hand
+buttons[0] = clamp
 axes[2] = torso
 axes[1] = shoulder
 #axes[1] = wrist_ud

@@ -54,9 +54,9 @@ class Shell(Cmd):
     def emptyline(self):
         pass
 
-    def do_hand(self, arg):
-        'Get or set the hand (clamp) actuator'
-        self.prop('hand', arg)
+    def do_clamp(self, arg):
+        'Get or set the clamp actuator'
+        self.prop('clamp', arg)
 
     def do_torso(self, arg):
         'Get or set the torso actuator'

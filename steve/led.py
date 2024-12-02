@@ -2,13 +2,13 @@ import logging
 from collections import OrderedDict
 
 import click
-import board   # adafruit-blinka
-import busio   # adafruit-blinka
+##import board   # adafruit-blinka
+##mport busio   # adafruit-blinka
 from pydbus import SystemBus
 import asyncio
-import adafruit_tlc59711
+##import adafruit_tlc59711
 
-from steve.color import RGB, RGBA
+from steve.color import RGB, RGBA, blend, rgb_to_float
 from steve.config import dbus_prefix
 from steve.animation import current_layer, blink, breathe
 from steve.utils import init_logging
@@ -45,30 +45,23 @@ actuator_layer = None
 
 old_active = None
 
-asyncio_loop = asyncio.new_event_loop()
-spi = busio.SPI(clock=board.SCK, MOSI=board.MOSI)
-tlc = adafruit_tlc59711.TLC59711(spi, pixel_count=16)
+
+def update_ipywidget_leds(c):
+    pass
 
 
-def blend(dst, c):
-    ia = 1 - c[3]
-    dst[0] = c[3] * c[0] + ia * dst[0]
-    dst[1] = c[3] * c[1] + ia * dst[1]
-    dst[2] = c[3] * c[2] + ia * dst[2]
+## def update_tlc_leds(c):
+##     tlc.set_pixel_all(c)
+##     tlc.show()
 
 
-def update_leds():
-    c = [0, 0, 0]
-    for l in layers.values():
-        blend(c, l)
-
-    tlc.set_pixel_all(c)
-    tlc.show()
-
-
-async def led_updater(rate=100):
+async def led_updater(callback, rate=100):
     while True:
-        update_leds()
+        c = [0, 0, 0]
+        for l in layers.values():
+            blend(c, l)
+
+        callback(c)
         await asyncio.sleep(1 / rate)
 
 
@@ -111,25 +104,18 @@ def update_layer(v, id=None):
     else:
         layer = layers[id]
 
-    if isinstance(v, RGB):
-        layer[0] = v.r / 255
-        layer[1] = v.g / 255
-        layer[2] = v.b / 255
-    elif isinstance(v, RGBA):
-        layer[0] = v.r / 255
-        layer[1] = v.g / 255
-        layer[2] = v.b / 255
-        layer[3] = v.alpha
+    if isinstance(v, RGB) or isinstance(v, RGBA):
+        v = rgb_to_float(v)
     elif isinstance(v, list) or isinstance(v, tuple):
         if len(v) < 3:
             raise Exception('Invalid value, at least 3 items expected')
 
-        layer[0] = v[0]
-        layer[1] = v[1]
-        layer[2] = v[2]
+    layer[0] = v[0]
+    layer[1] = v[1]
+    layer[2] = v[2]
 
-        if len(v) >= 4:
-            layer[3] = v[3]
+    if len(v) >= 4:
+        layer[3] = v[3]
 
     elif asyncio.iscoroutine(v):
         set_animation(id, v)
@@ -245,38 +231,40 @@ def on_stt_props_change(name, props, opts):
 @click.command()
 @click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
 def main(verbose):
-    global actuator_layer
+    global actuator_layer, updater
 
     init_logging(verbose)
 
-    updater = asyncio_loop.create_task(led_updater())
+    updater = asyncio_loop.create_task(led_updater(update_ipywidget_leds))
     actuator_layer = add_layer(breathe(RGB(103, 46, 0), period=6, gamma=0.08))
 
-    bus = SystemBus()
+##    bus = SystemBus()
 
-    roboarm = bus.get(f'{dbus_prefix}.RoboArm')
-    roboarm['org.freedesktop.DBus.Properties'].onPropertiesChanged = on_roboarm_props_change
+##    roboarm = bus.get(f'{dbus_prefix}.RoboArm')
+##    roboarm['org.freedesktop.DBus.Properties'].onPropertiesChanged = on_roboarm_props_change
 
-    stt = bus.get(f'{dbus_prefix}.SpeechToText')
-    stt['org.freedesktop.DBus.Properties'].onPropertiesChanged = on_stt_props_change
+##    stt = bus.get(f'{dbus_prefix}.SpeechToText')
+##    stt['org.freedesktop.DBus.Properties'].onPropertiesChanged = on_stt_props_change
 
-    sync_moving_layer({ 'moving': roboarm.moving })
-    sync_actuator_layer({ 'active': roboarm.active })
+##    sync_moving_layer({ 'moving': roboarm.moving })
+##    sync_actuator_layer({ 'active': roboarm.active })
 
-    api = LEDDBusAPI(BUS_NAME)
-    try:
-        api.start()
-        try:
-            asyncio_loop.run_forever()
-        finally:
-            updater.cancel()
-            asyncio_loop.stop()
-    finally:
-        api.quit()
-        off()
+##    api = LEDDBusAPI(BUS_NAME)
+##    try:
+##        api.start()
+##        try:
+##            asyncio_loop.run_forever()
+##        finally:
+##            updater.cancel()
+##            asyncio_loop.stop()
+##    finally:
+##        api.quit()
+##        off()
 
 
 if __name__ == '__main__':
+    asyncio_loop = asyncio.get_running_loop()
+##    asyncio_loop = asyncio.new_event_loop()
+##    spi = busio.SPI(clock=board.SCK, MOSI=board.MOSI)
+##    tlc = adafruit_tlc59711.TLC59711(spi, pixel_count=16)
     main()
-
-

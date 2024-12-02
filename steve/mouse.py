@@ -36,39 +36,62 @@ def _move(name, value, speed=1, deadband=0.4):
         'speed': GLib.Variant('d', speed * abs(value))
     })
 
-
-def hand(state):
-    roboarm.move('hand', MIN if state else MAX, {
-        'block': GLib.Variant('b', False),
-        'speed': GLib.Variant('d', 0.1)
-    })
-
 def wrist_ud(v): return _move('wrist_ud', v, speed=2.5)
 def wrist_lr(v): return _move('wrist_lr', v, deadband=0.5, speed=2)
 def elbow(v):    return _move('elbow', v, speed=2)
 def shoulder(v): return _move('shoulder', v, speed=2)
 def torso(v):    return _move('torso', v, speed=2.5)
 
+def clamp(state):
+    roboarm.move('clamp', MIN if state else MAX, {
+        'block': GLib.Variant('b', False),
+        'speed': GLib.Variant('d', 0.1)
+    })
 
-bus = SystemBus()
-roboarm = bus.get(f'{dbus_prefix}.RoboArm')
-stt = bus.get(f'{dbus_prefix}.SpeechToText')
+
+class Mouse:
+    def __init__(self):
+        spnav.open()
+        try:
+            try:
+                spnav.dev_type()
+            except spnav.SpnavError as e:
+                raise Exception('No device found, exiting') from e
+        except Exception as e:
+            with suppress(Exception):
+                spnav.close()
+            raise e
+
+        spnav.client_name('steve')
+        print_dev_info()
+
+    def __del__(self):
+        with suppress(Exception):
+            spnav.close()
+
+    def events(self):
+        while True:
+            event = spnav.wait_event()
+            if event is None: break
+            type_ = spnav.EventType(event.type)
+            if  type_ == spnav.EventType.MOTION:
+                yield event
+            elif type_ == spnav.EventType.BUTTON:
+                yield event
+            elif type_ == spnav.EventType.DEV:
+                if event.dev.op == spnav.ActionType.DEV_RM.value:
+                    log.info('Device removed, terminating')
+                    break
 
 
-def main_loop():
-    try:
-        spnav.dev_type()
-    except spnav.SpnavError:
-        log.info('No device found, exiting')
-        return
+@click.command()
+@click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
+def main(verbose):
+    init_logging(verbose)
 
-    spnav.client_name('steve')
-    print_dev_info()
-
+    mouse = Mouse()
     old = [ 0 ] * 6
-    while True:
-        event = spnav.wait_event()
-        if event is None: break
+    for event in mouse.events():
         type_ = spnav.EventType(event.type)
         if  type_ == spnav.EventType.MOTION:
             v = [
@@ -86,28 +109,14 @@ def main_loop():
             old = v
         elif type_ == spnav.EventType.BUTTON:
             if event.button.bnum == 0:
-                hand(event.button.press == 1)
+                clamp(event.button.press == 1)
             if event.button.bnum == 1:
                 if event.button.press == 1:
                     stt.toggle()
-        elif type_ == spnav.EventType.DEV:
-            if event.dev.op == spnav.ActionType.DEV_RM.value:
-                log.info('Device removed, terminating')
-                break
-
-
-@click.command()
-@click.option('--verbose', '-v', envvar='VERBOSE', count=True, help='Increase logging verbosity')
-def main(verbose):
-    init_logging(verbose)
-
-    try:
-        spnav.open()
-        main_loop()
-    finally:
-        with suppress(Exception):
-            spnav.close()
 
 
 if __name__ == "__main__":
+    bus = SystemBus()
+    roboarm = bus.get(f'{dbus_prefix}.RoboArm')
+    stt = bus.get(f'{dbus_prefix}.SpeechToText')
     main()

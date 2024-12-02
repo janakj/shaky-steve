@@ -25,19 +25,19 @@ def high_five():
     elbow = roboarm.elbow
     wrist_ud = roboarm.wrist_ud
     wrist_lr = roboarm.wrist_lr
-    hand = roboarm.hand
+    clamp = roboarm.clamp
 
     roboarm.move('torso', '-0.429', opts)
     roboarm.move('shoulder', '18.799', opts)
     roboarm.move('elbow', '61.7', opts)
     roboarm.move('wrist_ud', '-5.632', opts)
     roboarm.move('wrist_lr', '0.282', opts)
-    roboarm.move('hand', '0.03', opts)
+    roboarm.move('clamp', '0.03', opts)
     sleep(2)
     for i in range(5):
-        roboarm.hand = '0'
+        roboarm.clamp = '0'
         sleep(0.2)
-        roboarm.hand = '0.03'
+        roboarm.clamp = '0.03'
         sleep(0.2)
 
     roboarm.move('torso', torso, opts)
@@ -45,7 +45,7 @@ def high_five():
     roboarm.move('elbow', elbow, opts)
     roboarm.move('wrist_ud', wrist_ud, opts)
     roboarm.move('wrist_lr', wrist_lr, opts)
-    roboarm.move('hand', hand, opts)
+    roboarm.move('clamp', clamp, opts)
 
 
 def on_utterance(text):
@@ -57,9 +57,9 @@ def on_utterance(text):
         roboarm.sleep()
         roboarm.off()
     elif 'open' in text:
-        roboarm.hand = str(float('+inf'))
+        roboarm.clamp = str(float('+inf'))
     elif 'close' in text:
-        roboarm.hand = str(float('-inf'))
+        roboarm.clamp = str(float('-inf'))
     elif 'hi-5' in text or 'high 5' in text or 'hi 5' in text:
         high_five()
 

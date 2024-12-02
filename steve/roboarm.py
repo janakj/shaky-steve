@@ -258,14 +258,14 @@ class RoboArm(EventEmitter):
         await asyncio.sleep(0.3)
         self.wrist_ud = -90
         self.wrist_lr = 0
-        self.hand = float('+inf')
+        self.clamp = float('+inf')
         self.torso = 0
 
     async def sleep(self):
         await self.move('wrist_lr', 0, 2)
 
         await asyncio.gather(
-            self.move('hand', float('-inf'), 2),
+            self.move('clamp', float('-inf'), 2),
             self.move('torso', 0, 2),
             self.move('shoulder', 60, 1),
             self.move('elbow', -39, 1))
@@ -273,12 +273,12 @@ class RoboArm(EventEmitter):
         await self.move('wrist_ud', -90, 2)
 
     @property
-    def hand(self):
-        return self.get('hand')
+    def clamp(self):
+        return self.get('clamp')
 
-    @hand.setter
-    def hand(self, value: Union[float, None]):
-        return self.set('hand', value)
+    @clamp.setter
+    def clamp(self, value: Union[float, None]):
+        return self.set('clamp', value)
 
     @property
     def wrist_lr(self):
@@ -388,10 +388,10 @@ class RoboArmDBusAPI(DBusAPI):
         return False
 
     @property
-    def hand(self): return self.get('hand')
+    def clamp(self): return self.get('clamp')
 
-    @hand.setter
-    def hand(self, state): return self.set('hand', state)
+    @clamp.setter
+    def clamp(self, state): return self.set('clamp', state)
 
     @property
     def wrist_ud(self): return self.get('wrist_ud')
@@ -474,7 +474,7 @@ RoboArmDBusAPI.__doc__ = f'''
         <property name='moving' type='b' access='read'>
             <annotation name='org.freedesktop.DBus.Property.EmitsChangedSignal' value='true'/>
         </property>
-        <property name='hand' type='s' access='readwrite'>
+        <property name='clamp' type='s' access='readwrite'>
             <annotation name='org.freedesktop.DBus.Property.EmitsChangedSignal' value='true'/>
         </property>
         <property name='wrist_ud' type='s' access='readwrite'>
@@ -527,7 +527,7 @@ def main(verbose):
                 'pulse': [ 460, 2450 ],
                 'map'  : { -90: 0.01, 0: 0.47, 90: 0.97 }
             },
-            'hand': {
+            'clamp': {
                 'type' : 'linear',
                 'servo': 1,               # Servo number on the 16-port PWM chip
                 'pulse': [ 590, 2590 ],   # Minimum and maximum usable pulse width for this servo
